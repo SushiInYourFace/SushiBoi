@@ -13,8 +13,6 @@ import asyncio
 import numpy as np
 
 
-electiondata = open (file="1976-2016-president.csv")
-reader = csv.reader(electiondata, delimiter =",")
 
 TOKEN = open("Discord_Token.txt").read()
 WOLFRAM_KEY = open('Wolfram_Key.txt').read()
@@ -225,13 +223,6 @@ async def userinfo(ctx, *, user : discord.Member):
         userembed.add_field(name= "Stored message", value = storedmessage)
     await ctx.send(embed = userembed)
 
-@bot.command(help= "Search through US presidential election data from 1976 to 2016. Currently a WIP, only shows Democrat vote totals in PA (Right now, this command is mostly me learning how to use CSV files)")
-async def votedata(ctx):
-    output = discord.Embed(title = "Votes for the Democratic presidential candidate in Pennsylvania", color=0x0a57d1)
-    for row in reader:
-        if row[1] == "Pennsylvania" and row[8] == "democrat":
-            output.add_field(name=str(row[0]), value = str(row[10]))
-    await ctx.send(embed = output)
 
 @bot.command(help= "Displays how many times a user has used SushiBot", aliases = ["bot_uses", "uses"])
 async def botuses(ctx, *, member : discord.Member):
