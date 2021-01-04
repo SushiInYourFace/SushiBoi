@@ -61,7 +61,7 @@ async def read(ctx, *, arg):
         await ctx.send("Sorry, I haven't made this command yet")
 
  
-@bot.command (help="Testing voice command")
+@bot.command (help="Testing a voice command")
 async def voicetest(ctx):
     channelname = ctx.author.voice.channel
     try:
