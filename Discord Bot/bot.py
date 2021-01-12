@@ -10,8 +10,10 @@ import sqlite3
 import csv
 from gtts import gTTS
 import asyncio
+import pokepy
 import numpy as np
-
+import Responses
+import userinfo
 
 
 TOKEN = open("Discord_Token.txt").read()
@@ -20,6 +22,7 @@ intents = discord.Intents.default()
 intents.members = True
 client = wolframalpha.Client(WOLFRAM_KEY)
 bot = commands.Bot(command_prefix="%", intents=intents)
+pokeclient = pokepy.V2Client()
 
 
 connection = sqlite3.connect("database.db")
@@ -36,6 +39,9 @@ board = np.arange(42).reshape(6, 7)
 async def on_ready():
     for guild in bot.guilds: 
         print("Connected to " + guild.name)
+
+bot.add_cog(Responses.Responses(bot))
+bot.add_cog(userinfo.User(bot))
 
 @bot.command(help = "disconnects the bot from whatever channel it is in")
 async def leave(ctx):
@@ -82,21 +88,6 @@ async def on_message(message):
         await message.channel.send(response)
     await bot.process_commands(message)
     
-#help 
-@bot.command(help = "Displays some helpful advice")
-async def helpme(ctx):
-    await ctx.send("fuck you")
-#horse    
-@bot.command(help = "horse")
-async def thehorse(ctx):
-    await ctx.send(":horse:")
-#fingering
-@bot.command(help = "Displays helpful fingering charts", aliases = ["fingerchart", "fingeringchart"])
-async def clarinetfingerings(ctx):
-    response = discord.Embed(title = "Clarinet Fingerings")
-    response.add_field(name="Standard Fingering Chart", value="https://bit.ly/fingermeuwu")
-    response.add_field(name="Quarter Tone Chart", value="https://bit.ly/fingermedaddy")
-    await ctx.send(embed = response)
 
 #integer   
 @bot.command(help = "Is it an integer? Let's find out!")
@@ -116,19 +107,8 @@ async def ping(ctx):
     pingtime= bot.latency * 1000
     pingtime= round(pingtime, 3)
     await ctx.send(content = "Current ping is " + str(pingtime) + " ms")
-#roles baby
-@bot.command(help = "displays a user's roles")
-async def roles(ctx, member : discord.Member):
-        member = [rolo.name for rolo in member.roles]
-        member.remove("@everyone")
-        await ctx.send("This user has the following roles: " + str(member))
-#joindate    
-@bot.command(help = "join date")
-async def joined(ctx, *, member : discord.Member):
-    embed1 = discord.Embed(title = str(member))
-    embed1.add_field(name = "Joined server on", value = str(member.joined_at)[:-7] + " UTC")
-    embed1.add_field(name = "Account created on", value = str(member.created_at)[:-7] + " UTC", inline = False)
-    await ctx.send(embed = embed1)
+
+
 #error handling
 
 @bot.event
@@ -170,14 +150,14 @@ async def avatar(ctx, member : discord.Member):
 #SQL TEST
 @bot.command(help = "Not really anything useful, stores a number for each user.  \n To request current number associated with your account, add the argument \"query\". If you really want to store a number, you can do the same thing with the storemessage command.")
 async def usernum(ctx, stringnum):
-    sender = str(ctx.author)
+    sender = str(ctx.author.id)
     try:
         if stringnum == "query":
             output = cursor.execute("SELECT number FROM user_number WHERE name = ?", (sender,)).fetchone()
             await ctx.send(str(output[0]))
         else:
             int(stringnum)
-            sender = str(ctx.author)
+            sender = str(ctx.author.id)
             arg = int(stringnum)
             cursor.execute("INSERT INTO user_number(name,number) VALUES(?, ?) ON CONFLICT(name) DO UPDATE SET number=excluded.number", (sender, arg))
             connection.commit()
@@ -189,7 +169,7 @@ async def usernum(ctx, stringnum):
 #user message store
 @bot.command(help= 'Stores a personal message for each user. You can check a user\'s message with the querymessage command')
 async def storemessage(ctx, *, arg):
-    sender = str(ctx.author)
+    sender = str(ctx.author.id)
     cursor.execute("INSERT INTO user_message(name,message) VALUES(?, ?) ON CONFLICT(name) DO UPDATE SET message=excluded.message", (sender, arg))
     connection.commit()
     await ctx.send("Your new stored message is \"" + arg + "\"")
@@ -197,38 +177,18 @@ async def storemessage(ctx, *, arg):
 @bot.command(help = "Shows the message a user has saved")
 async def querymessage(ctx, *, member : discord.Member):
     try:
-        targetuser = str(member)
+        targetuser = str(member.id)
         output = cursor.execute("SELECT message FROM user_message WHERE name = ?", (targetuser,)).fetchone()
         await ctx.send(str(output[0]))
     except:
         await ctx.send("This user has not created a message yet")
-
-#user info
-@bot.command(help = "Lists information on a certain user")
-async def userinfo(ctx, *, user : discord.Member):
-    userembed = discord.Embed(title = str(user))
-    userpic = str(user.avatar_url)
-    userembed.set_thumbnail(url = userpic)
-    nickname = user.display_name
-    userembed.add_field(name ="Nickname", value=nickname)
-    userembed.add_field(name = "Joined Discord", value= str(user.created_at)[:-7] + " UTC", inline = False)
-    userembed.add_field(name= "Joined server", value= str(user.joined_at)[:-7] + " UTC", inline = False)
-    targetuser = str(user)
-    userembed.add_field(name= "User ID", value= user.id)
-    try:
-        storedmessage = cursor.execute("SELECT message FROM user_message WHERE name = ?", (targetuser,)).fetchone()
-        userembed.add_field(name= "Stored message", value = storedmessage[0])
-    except:
-        storedmessage = "This user has not stored a message yet"
-        userembed.add_field(name= "Stored message", value = storedmessage)
-    await ctx.send(embed = userembed)
 
 
 @bot.command(help= "Displays how many times a user has used SushiBot", aliases = ["bot_uses", "uses"])
 async def botuses(ctx, *, member : discord.Member):
     plural = "s"
     try:
-        targetuser = str(member)
+        targetuser = str(member.id)
         output = cursor.execute("SELECT number FROM bot_uses WHERE name = ?", (targetuser,)).fetchone()
         if int(output[0]) == 1:
             plural = ""
@@ -238,7 +198,8 @@ async def botuses(ctx, *, member : discord.Member):
 
 @bot.event
 async def on_command(ctx):
-    user = str(ctx.author)
+    usertext = str(ctx.author)
+    user = str(ctx.author.id)
     place = str(ctx.guild)
     existing = cursor.execute("SELECT number FROM bot_uses WHERE name = ?", (user,)).fetchone()
     try:
@@ -252,100 +213,31 @@ async def on_command(ctx):
         await ctx.send("Thank you for using Sushibot for the first time! If you are confused in any way about what I can do, feel free to type %help or contact SushiInYourFace")
     if existing == 100:
         await ctx.send("This was your 100th Sushibot command! Congratulations!")
-    print("New command from " + user + " in " + place)
+    print("New command from " + usertext + " in " + place)
     if existing == 250:
         await ctx.send("Congrats on your 250th Command to SushiBot")
-"""
-@bot.command(help = "Start a two player Connect-four game")
-async def connect_four(ctx):
-    output = discord.Embed(title = "Player 2, please react to this message to get started!")
-    sent = await ctx.send(embed=output)
-    started = discord.Embed(title = "This is where the game will be")
-    await sent.add_reaction("✅")
-    def check(reaction, user):
-        return str(reaction.emoji) == "✅" and user != ctx.author and user != bot.user
+
+@bot.command(help="Pokemon. Info. Hopefully not broken.")
+async def pokemon(ctx, arg):
     try:
-        reaction, user = await bot.wait_for('reaction_add', timeout=60.0, check=check)
-    except asyncio.TimeoutError:
-        await ctx.send("Game cancelled, No P2 reacted to the message")
-    else:
-        await ctx.send("Game started! (coming soon)")
-        await sent.delete()
-        truth = 1
-    board = np.empty((6, 7), dtype=object)
-    board.fill("-")
-    turn = 2
-    rows = [5, 4, 3, 2, 1, 0]
-    cols = [6, 5, 4, 3, 2, 1, 0]
-    def horizontal(game, column, rows):
-        for y in column:
-            for z in rows:
-                    try:
-                        if game[z, y] == game[z, y-1] == game[z, y-2] == game[z, y-3] != "-":
-                            truth = 2
-                            break
-                    except IndexError:
-                        pass
+        pokemon = pokeclient.get_pokemon(arg)
+        species = pokeclient.get_pokemon_species(arg)
+        returnembed = discord.Embed(title=pokemon.name)
+        returnembed.add_field(name="ID", value=pokemon.id)
+        returnembed.add_field(name="species", value=(species.name))
+        returnembed.add_field(name="Generation", value=species.generation.name)
+        await ctx.send(embed=returnembed)
+    except:
+        await ctx.send("Not a valid pokemon")
 
-    def vertical(game, column, rows):
-        for z in rows:
-            for y in column:
-                try:
-                    if game[z, y] == game[z-1, y] == game[z-2, y] == game[z-3, y] != "-":
-                        truth = 2
-                        break
-                except IndexError:
-                    pass
+@bot.command(help="RATS RATS RATS RATS RATS RATS RATS RATS RATS RATS RATS RATS", aliases=["rat", "RATS", "RAT"])
+async def rats(ctx):
+    rat = random.choice(open("rats.txt").readlines())
+    await ctx.send(rat)
 
-    def diag1(game, column, rows):
-        for y in column:
-            for z in rows:
-                try:
-                    if game[z, y] == game[z-1, y-1] == game[z-2, y-2] == game[z-3, y-3] != "-":
-                        truth = 2
-                        break
-                except IndexError:
-                    pass
 
-    def diag2(game, column, rows):
-        for y in column:
-            for z in rows:
-                try:
-                    if game[z, y] == game[z-1, y+1] == game[z-2, y+2] == game[z-3, y+3] != "-":
 
-                        truth = 2
-                        break
-                except IndexError:
-                    pass
-    def play(col):
-        for row in rows:
-            if board[row, col-1] == "-":
-                if turn % 2 == 0:
-                    board[row, col-1] = "X"
-                    break
-                else:
-                    board[row, col-1] = "O"
-                    break
-        print(str(board))
-    while truth == 1:
-        x = input()
-        play(int(x))
-        horizontal(board, cols, rows)
-        vertical(board, cols, rows)
-        diag1(board, cols, rows)
-        diag2(board, cols, rows)
-        if turn == 2:
-            gameboard = discord.Embed(title = "Connect 4")
-            gameboard.add_field(name = "Gameboard", value = str(board)[1:-1])
-            current = await ctx.send(embed = gameboard)
-        else:
-            await current.delete()
-            gameboard = discord.Embed(title = "Connect 4")
-            gameboard.add_field(name = "Gameboard", value = "``` " + str(board)[1:-1] + "```")
-            current = await ctx.send(embed = gameboard)
-        turn += 1
-    pass    
-        """
 
-    
+
+
 bot.run(TOKEN)
