@@ -70,7 +70,7 @@ async def read(ctx, *, arg):
 async def voicetest(ctx):
     channelname = ctx.author.voice.channel
     try:
-        vclient = await channelname.connect()
+        await channelname.connect()
     except:
         pass
     resultant = discord.FFmpegPCMAudio(source="audiofilev2.wav", executable="/usr/bin/ffmpeg")
@@ -196,7 +196,7 @@ async def pokemon(ctx, arg):
 
 @bot.command(help="RATS RATS RATS RATS RATS RATS RATS RATS RATS RATS RATS RATS", aliases=["rat", "RATS", "RAT"])
 async def rats(ctx):
-    rat = random.choice(open("rats.txt").readlines())
+    rat = random.choice(open("RATSRATSRATS.txt").readlines())
     await ctx.send(rat)
 
 
