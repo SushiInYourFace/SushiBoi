@@ -14,7 +14,7 @@ import pokepy
 import numpy as np
 import Responses
 import userinfo
-
+import sqlcrap
 
 TOKEN = open("Discord_Token.txt").read()
 WOLFRAM_KEY = open('Wolfram_Key.txt').read()
@@ -42,6 +42,7 @@ async def on_ready():
 
 bot.add_cog(Responses.Responses(bot))
 bot.add_cog(userinfo.User(bot))
+bot.add_cog(sqlcrap.SQLCrap(bot))
 
 @bot.command(help = "disconnects the bot from whatever channel it is in")
 async def leave(ctx):
@@ -53,7 +54,7 @@ async def leave(ctx):
 async def connect(ctx):
     channelname = ctx.author.voice.channel
     try: 
-        vclient = await channelname.connect()
+        await channelname.connect()
     except:
         pass
 
@@ -72,7 +73,7 @@ async def voicetest(ctx):
         vclient = await channelname.connect()
     except:
         pass
-    resultant = discord.FFmpegPCMAudio(source="audiofilev2.wav", executable="C:\\Users\\Joel\\ffmpeg\\bin\\ffmpeg.exe")
+    resultant = discord.FFmpegPCMAudio(source="audiofilev2.wav", executable="/usr/bin/ffmpeg")
     ctx.voice_client.play(resultant)
     await ctx.send("This is not a finished command yet. So far, it is only set up to play one file")
 #poggers
@@ -142,46 +143,9 @@ async def wolfram(ctx, *, arg):
         await ctx.send(("Input: {} \n{}".format(arg, messagecontent)))
     else:
         await ctx.send("Wolfram didn't like the input \"" + arg + "\"")
-#user avatar    
-@bot.command(help = "Displays a user avatar")
-async def avatar(ctx, member : discord.Member):
-    await ctx.send(str(member.avatar_url))
 
-#SQL TEST
-@bot.command(help = "Not really anything useful, stores a number for each user.  \n To request current number associated with your account, add the argument \"query\". If you really want to store a number, you can do the same thing with the storemessage command.")
-async def usernum(ctx, stringnum):
-    sender = str(ctx.author.id)
-    try:
-        if stringnum == "query":
-            output = cursor.execute("SELECT number FROM user_number WHERE name = ?", (sender,)).fetchone()
-            await ctx.send(str(output[0]))
-        else:
-            int(stringnum)
-            sender = str(ctx.author.id)
-            arg = int(stringnum)
-            cursor.execute("INSERT INTO user_number(name,number) VALUES(?, ?) ON CONFLICT(name) DO UPDATE SET number=excluded.number", (sender, arg))
-            connection.commit()
-            output = cursor.execute("SELECT number FROM user_number WHERE name = ?", (sender,)).fetchone()
-            await ctx.send("Your new stored number is " + str(output[0]))
-    except ValueError:
-            await ctx.send("Sorry, this command requires an integer argument")
 
-#user message store
-@bot.command(help= 'Stores a personal message for each user. You can check a user\'s message with the querymessage command')
-async def storemessage(ctx, *, arg):
-    sender = str(ctx.author.id)
-    cursor.execute("INSERT INTO user_message(name,message) VALUES(?, ?) ON CONFLICT(name) DO UPDATE SET message=excluded.message", (sender, arg))
-    connection.commit()
-    await ctx.send("Your new stored message is \"" + arg + "\"")
-#user message query
-@bot.command(help = "Shows the message a user has saved")
-async def querymessage(ctx, *, member : discord.Member):
-    try:
-        targetuser = str(member.id)
-        output = cursor.execute("SELECT message FROM user_message WHERE name = ?", (targetuser,)).fetchone()
-        await ctx.send(str(output[0]))
-    except:
-        await ctx.send("This user has not created a message yet")
+
 
 
 @bot.command(help= "Displays how many times a user has used SushiBot", aliases = ["bot_uses", "uses"])

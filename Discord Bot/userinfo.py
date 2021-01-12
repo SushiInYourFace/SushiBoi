@@ -48,3 +48,9 @@ class User(commands.Cog):
             storedmessage = "This user has not stored a message yet"
             userembed.add_field(name= "Stored message", value = storedmessage)
         await ctx.send(embed = userembed)
+
+    #user avatar    
+    @commands.command(help = "Displays a user avatar")
+    async def avatar(self, ctx, member : discord.Member):
+        await ctx.send(str(member.avatar_url))
+
