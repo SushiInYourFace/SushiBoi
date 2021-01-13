@@ -3,6 +3,8 @@ from discord.ext import commands
 import wolframalpha
 import pokepy
 
+WOLFRAM_KEY = open('Wolfram_Key.txt').read()
+client = wolframalpha.Client(WOLFRAM_KEY)
 pokeclient = pokepy.V2Client()
 
 class Information(commands.Cog):
