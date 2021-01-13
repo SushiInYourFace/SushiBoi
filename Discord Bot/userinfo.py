@@ -54,3 +54,15 @@ class User(commands.Cog):
     async def avatar(self, ctx, member : discord.Member):
         await ctx.send(str(member.avatar_url))
 
+    @commands.command(help= "Displays how many times a user has used SushiBot", aliases = ["bot_uses", "uses"])
+    async def botuses(self, ctx, *, member : discord.Member):
+        plural = "s"
+        try:
+            targetuser = str(member.id)
+            output = cursor.execute("SELECT number FROM bot_uses WHERE name = ?", (targetuser,)).fetchone()
+            if int(output[0]) == 1:
+                plural = ""
+            await ctx.send("This user has used Sushibot " + str(output[0]) + " time" + plural)
+        except:
+            await ctx.send("This user has not used SushiBoi yet. Sad")
+

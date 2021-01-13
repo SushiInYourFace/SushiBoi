@@ -15,6 +15,8 @@ import numpy as np
 import Responses
 import userinfo
 import sqlcrap
+import info
+from discord.errors import ClientException
 
 TOKEN = open("Discord_Token.txt").read()
 WOLFRAM_KEY = open('Wolfram_Key.txt').read()
@@ -43,6 +45,7 @@ async def on_ready():
 bot.add_cog(Responses.Responses(bot))
 bot.add_cog(userinfo.User(bot))
 bot.add_cog(sqlcrap.SQLCrap(bot))
+bot.add_cog(info.Information(bot))
 
 @bot.command(help = "disconnects the bot from whatever channel it is in")
 async def leave(ctx):
@@ -52,11 +55,14 @@ async def leave(ctx):
 
 @bot.command(help = "Joins the voice channel you are currently in. Does not play anything", aliases = ["join"])
 async def connect(ctx):
-    channelname = ctx.author.voice.channel
     try: 
+        channelname = ctx.author.voice.channel
         await channelname.connect()
-    except:
-        pass
+    except AttributeError:
+        await ctx.send("You don't appear to be in a voice channel!")
+    except ClientException:
+        await ctx.send("I'm already in a voice channel!")
+        
 
 @bot.command(help = "Reads your message in the voice channel you are currently in")
 async def read(ctx, *, arg):
@@ -64,20 +70,18 @@ async def read(ctx, *, arg):
         await ctx.send("Not connected to a channel!")
     else:
         await ctx.send("Sorry, I haven't made this command yet")
-
  
 @bot.command (help="Testing a voice command")
 async def voicetest(ctx):
     channelname = ctx.author.voice.channel
     try:
         await channelname.connect()
-    except:
+    except(AttributeError, ClientException):
         pass
     resultant = discord.FFmpegPCMAudio(source="audiofilev2.wav", executable="/usr/bin/ffmpeg")
     ctx.voice_client.play(resultant)
     await ctx.send("This is not a finished command yet. So far, it is only set up to play one file")
 #poggers
-
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
@@ -88,27 +92,11 @@ async def on_message(message):
         response = 'lmao'
         await message.channel.send(response)
     await bot.process_commands(message)
-    
 
-#integer   
-@bot.command(help = "Is it an integer? Let's find out!")
-async def isinteger(ctx, arg):
-    try:
-        int(arg)
-        await ctx.send("Yes, that's an integer")
-    except ValueError:
-        await ctx.send("That's not an integer, dipshit")
 #parrot       
 @bot.command(help = "Repeats your message back to you")
 async def parrot(ctx, *, chloroplast):
     await ctx.send(str(chloroplast))
-#ping   
-@bot.command(help = "displays current pingtime")
-async def ping(ctx):
-    pingtime= bot.latency * 1000
-    pingtime= round(pingtime, 3)
-    await ctx.send(content = "Current ping is " + str(pingtime) + " ms")
-
 
 #error handling
 
@@ -127,38 +115,6 @@ async def on_command_error(ctx, error):
         await ctx.send('Sorry, that is not a valid number of arguments for this command. If you need help understanding how this command works, please use the command %help (your command)')
     else:
         await ctx.send("error")
-
-#Wolfram
-@bot.command(help = "Queries WolframAlpha")
-async def wolfram(ctx, *, arg):
-    async with ctx.channel.typing():
-        try:
-            res = client.query(arg)
-            messagecontent = next(res.results).text
-            validrep = True
-        except:
-            messagecontent = "Wolfram didn't like that input"
-            validrep = False 
-    if validrep == True:
-        await ctx.send(("Input: {} \n{}".format(arg, messagecontent)))
-    else:
-        await ctx.send("Wolfram didn't like the input \"" + arg + "\"")
-
-
-
-
-
-@bot.command(help= "Displays how many times a user has used SushiBot", aliases = ["bot_uses", "uses"])
-async def botuses(ctx, *, member : discord.Member):
-    plural = "s"
-    try:
-        targetuser = str(member.id)
-        output = cursor.execute("SELECT number FROM bot_uses WHERE name = ?", (targetuser,)).fetchone()
-        if int(output[0]) == 1:
-            plural = ""
-        await ctx.send("This user has used Sushibot " + str(output[0]) + " time" + plural)
-    except:
-        await ctx.send("This user has not used SushiBoi yet. Sad")
 
 @bot.event
 async def on_command(ctx):
@@ -181,27 +137,9 @@ async def on_command(ctx):
     if existing == 250:
         await ctx.send("Congrats on your 250th Command to SushiBot")
 
-@bot.command(help="Pokemon. Info. Hopefully not broken.")
-async def pokemon(ctx, arg):
-    try:
-        pokemon = pokeclient.get_pokemon(arg)
-        species = pokeclient.get_pokemon_species(arg)
-        returnembed = discord.Embed(title=pokemon.name)
-        returnembed.add_field(name="ID", value=pokemon.id)
-        returnembed.add_field(name="species", value=(species.name))
-        returnembed.add_field(name="Generation", value=species.generation.name)
-        await ctx.send(embed=returnembed)
-    except:
-        await ctx.send("Not a valid pokemon")
-
 @bot.command(help="RATS RATS RATS RATS RATS RATS RATS RATS RATS RATS RATS RATS", aliases=["rat", "RATS", "RAT"])
 async def rats(ctx):
     rat = random.choice(open("RATSRATSRATS.txt").readlines())
     await ctx.send(rat)
-
-
-
-
-
 
 bot.run(TOKEN)
