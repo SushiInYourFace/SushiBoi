@@ -20,3 +20,8 @@ class Responses(commands.Cog):
         response.add_field(name="Standard Fingering Chart", value="https://bit.ly/fingermeuwu")
         response.add_field(name="Quarter Tone Chart", value="https://bit.ly/fingermedaddy")
         await ctx.send(embed = response)
+
+        #parrot       
+    @commands.command(help = "Repeats your message back to you")
+    async def parrot(self, ctx, *, arg):
+        await ctx.send(str(arg))

@@ -44,7 +44,7 @@ class User(commands.Cog):
         try:
             storedmessage = cursor.execute("SELECT message FROM user_message WHERE name = ?", (targetuser,)).fetchone()
             userembed.add_field(name= "Stored message", value = storedmessage[0])
-        except:
+        except TypeError:
             storedmessage = "This user has not stored a message yet"
             userembed.add_field(name= "Stored message", value = storedmessage)
         await ctx.send(embed = userembed)
@@ -63,6 +63,6 @@ class User(commands.Cog):
             if int(output[0]) == 1:
                 plural = ""
             await ctx.send("This user has used Sushibot " + str(output[0]) + " time" + plural)
-        except:
+        except TypeError:
             await ctx.send("This user has not used SushiBoi yet. Sad")
 

@@ -50,5 +50,5 @@ class SQLCrap(commands.Cog, name="SQL Crap"):
             targetuser = str(member.id)
             output = cursor.execute("SELECT message FROM user_message WHERE name = ?", (targetuser,)).fetchone()
             await ctx.send(str(output[0]))
-        except:
+        except TypeError:
             await ctx.send("This user has not created a message yet")

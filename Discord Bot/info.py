@@ -2,10 +2,13 @@ import discord
 from discord.ext import commands
 import wolframalpha
 import pokepy
+from discord import client
+from beckett.exceptions import InvalidStatusCodeError
 
+pokeclient = pokepy.V2Client()
 WOLFRAM_KEY = open('Wolfram_Key.txt').read()
 client = wolframalpha.Client(WOLFRAM_KEY)
-pokeclient = pokepy.V2Client()
+
 
 class Information(commands.Cog):
     def __init__(self, bot):
@@ -29,7 +32,7 @@ class Information(commands.Cog):
                 res = client.query(arg)
                 messagecontent = next(res.results).text
                 validrep = True
-            except:
+            except AttributeError:
                 messagecontent = "Wolfram didn't like that input"
                 validrep = False 
         if validrep == True:
@@ -47,6 +50,6 @@ class Information(commands.Cog):
             returnembed.add_field(name="species", value=(species.name))
             returnembed.add_field(name="Generation", value=species.generation.name)
             await ctx.send(embed=returnembed)
-        except:
+        except InvalidStatusCodeError:
             await ctx.send("Not a valid pokemon")
         

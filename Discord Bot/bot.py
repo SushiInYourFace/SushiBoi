@@ -1,5 +1,6 @@
 # bot.py
 import os
+import sys
 import random
 import datetime
 from datetime import timedelta
@@ -16,6 +17,10 @@ import Responses
 import userinfo
 import sqlcrap
 import info
+import cmty
+import util
+import globals
+import traceback
 from discord.errors import ClientException
 
 TOKEN = open("Discord_Token.txt").read()
@@ -34,11 +39,12 @@ cursor.execute("CREATE TABLE IF NOT EXISTS bot_uses (name TEXT PRIMARY KEY, numb
 cursor.execute("CREATE TABLE IF NOT EXISTS user_message (name TEXT PRIMARY KEY, message TEXT)")
 connection.commit()
 
-board = np.arange(42).reshape(6, 7)
+
 
 #on ready
 @bot.event
 async def on_ready():
+    globals.load()
     for guild in bot.guilds: 
         print("Connected to " + guild.name)
 
@@ -46,6 +52,8 @@ bot.add_cog(Responses.Responses(bot))
 bot.add_cog(userinfo.User(bot))
 bot.add_cog(sqlcrap.SQLCrap(bot))
 bot.add_cog(info.Information(bot))
+bot.add_cog(cmty.Community(bot))
+bot.add_cog(util.Utility(bot))
 
 @bot.command(help = "disconnects the bot from whatever channel it is in")
 async def leave(ctx):
@@ -88,15 +96,12 @@ async def on_message(message):
         return
     if(message.author.bot):
         return
-    if message.content == 'poggers' or message.content == "Poggers":
-        response = 'lmao'
-        await message.channel.send(response)
+ #   if message.content == 'poggers' or message.content == "Poggers":
+      #  response = 'lmao'
+       # await message.channel.send(response)
     await bot.process_commands(message)
 
-#parrot       
-@bot.command(help = "Repeats your message back to you")
-async def parrot(ctx, *, chloroplast):
-    await ctx.send(str(chloroplast))
+
 
 #error handling
 
@@ -115,6 +120,17 @@ async def on_command_error(ctx, error):
         await ctx.send('Sorry, that is not a valid number of arguments for this command. If you need help understanding how this command works, please use the command %help (your command)')
     else:
         await ctx.send("error")
+    er = traceback.extract_stack()
+    strerror = er.format()
+    result = ""
+    for item in strerror:
+        result += item
+    if globals.debugmode == True:
+        if ctx.author.id == 523655829279342593:
+            await ctx.send("```" + str(error) + "\n" + result + "```")
+        else:
+            await ctx.send("Because debug mode is on, your traceback was saved")
+
 
 @bot.event
 async def on_command(ctx):
@@ -142,4 +158,8 @@ async def rats(ctx):
     rat = random.choice(open("RATSRATSRATS.txt").readlines())
     await ctx.send(rat)
 
+@bot.command(help="Changes the bot's current status")
+async def presence(ctx, *, arg):
+    activity = discord.CustomActivity(name=arg)
+    await bot.change_presence(activity=activity)
 bot.run(TOKEN)
