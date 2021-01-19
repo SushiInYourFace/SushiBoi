@@ -35,6 +35,8 @@ cursor = connection.cursor()
 cursor.execute("CREATE TABLE IF NOT EXISTS user_number (name TEXT PRIMARY KEY, number INTEGER)")
 cursor.execute("CREATE TABLE IF NOT EXISTS bot_uses (name TEXT PRIMARY KEY, number INTEGER)")
 cursor.execute("CREATE TABLE IF NOT EXISTS user_message (name TEXT PRIMARY KEY, message TEXT)")
+cursor.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)")
+cursor.execute("CREATE TABLE IF NOT EXISTS command_uses (command TEXT PRIMARY KEY, uses INTEGER)")
 connection.commit()
 
 #JSON writer, used for logging messages
@@ -108,8 +110,10 @@ async def on_command_error(ctx, error):
 @bot.event
 async def on_command(ctx):
     usertext = str(ctx.author)
+    intid = ctx.author.id
     user = str(ctx.author.id)
     place = str(ctx.guild)
+    command = ctx.command.name
     existing = cursor.execute("SELECT number FROM bot_uses WHERE name = ?", (user,)).fetchone()
     #checks if the user is already in the database
     try:
@@ -122,6 +126,17 @@ async def on_command(ctx):
         cog = ctx.cog.qualified_name,
     except AttributeError: 
         cog = "None"
+    #checks if the command has been used
+    prev_uses = cursor.execute("SELECT uses FROM command_uses WHERE command = ?", (command,)).fetchone()
+    try:
+        prev_uses = int(prev_uses[0])
+    except TypeError:
+        prev_uses = 0
+    prev_uses = int(prev_uses)+1
+    #adds new command uses
+    cursor.execute("INSERT INTO command_uses(command,uses) VALUES(?, ?) ON CONFLICT(command) DO UPDATE SET uses=excluded.uses", (command, prev_uses))
+    #adds user to database if needed
+    cursor.execute("INSERT INTO users(id,name) VALUES(?, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name", (intid, usertext))
     #adds one to the user's count
     cursor.execute("INSERT INTO bot_uses(name,number) VALUES(?, ?) ON CONFLICT(name) DO UPDATE SET number=excluded.number", (user, existing))
     #milestone messages
@@ -142,7 +157,7 @@ async def on_command(ctx):
              "User": usertext,
              "Guild": place,
              "Channel": str(ctx.channel),
-             "Command": ctx.command.name,
+             "Command": command,
              "Cog": cog,
              "Time": str(datetime.datetime.now())
         }
