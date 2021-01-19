@@ -25,3 +25,7 @@ class Responses(commands.Cog):
     @commands.command(help = "Repeats your message back to you")
     async def parrot(self, ctx, *, arg):
         await ctx.send(str(arg))
+
+
+def setup(bot):
+    bot.add_cog(Responses(bot))

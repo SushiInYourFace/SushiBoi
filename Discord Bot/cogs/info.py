@@ -53,3 +53,6 @@ class Information(commands.Cog):
         except InvalidStatusCodeError:
             await ctx.send("Not a valid pokemon")
         
+
+def setup(bot):
+    bot.add_cog(Information(bot))

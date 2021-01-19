@@ -45,4 +45,5 @@ class Community(commands.Cog):
             results.add_field(name="Misc. Reactions", value=nummisc)
         await ctx.send(embed=results)
         
-      
+def setup(bot):
+    bot.add_cog(Community(bot))

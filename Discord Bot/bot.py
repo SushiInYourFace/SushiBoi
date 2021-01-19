@@ -13,25 +13,23 @@ from gtts import gTTS
 import asyncio
 import pokepy
 import numpy as np
-import Responses
-import userinfo
-import sqlcrap
-import info
-import cmty
-import util
 import globals
+import json
 import traceback
 from discord.errors import ClientException
 
+#initiating different clients and tokens
 TOKEN = open("Discord_Token.txt").read()
 WOLFRAM_KEY = open('Wolfram_Key.txt').read()
-intents = discord.Intents.default()
-intents.members = True
 client = wolframalpha.Client(WOLFRAM_KEY)
-bot = commands.Bot(command_prefix="%", intents=intents)
 pokeclient = pokepy.V2Client()
 
+#intents, starting bot
+intents = discord.Intents.default()
+intents.members = True
+bot = commands.Bot(command_prefix="%", intents=intents)
 
+#SQLite
 connection = sqlite3.connect("database.db")
 cursor = connection.cursor()
 cursor.execute("CREATE TABLE IF NOT EXISTS user_number (name TEXT PRIMARY KEY, number INTEGER)")
@@ -39,7 +37,10 @@ cursor.execute("CREATE TABLE IF NOT EXISTS bot_uses (name TEXT PRIMARY KEY, numb
 cursor.execute("CREATE TABLE IF NOT EXISTS user_message (name TEXT PRIMARY KEY, message TEXT)")
 connection.commit()
 
-
+#JSON writer, used for logging messages
+def writer(data, filename='messages.json'): 
+    with open(filename,'w') as f: 
+        json.dump(data, f, indent=4) 
 
 #on ready
 @bot.event
@@ -48,47 +49,20 @@ async def on_ready():
     for guild in bot.guilds: 
         print("Connected to " + guild.name)
 
-bot.add_cog(Responses.Responses(bot))
-bot.add_cog(userinfo.User(bot))
-bot.add_cog(sqlcrap.SQLCrap(bot))
-bot.add_cog(info.Information(bot))
-bot.add_cog(cmty.Community(bot))
-bot.add_cog(util.Utility(bot))
+#cogs
+initial_extensions = [
+    'cogs.cmty',
+    'cogs.info',
+    'cogs.Responses',
+    'cogs.sqlcrap',
+    'cogs.userinfo',
+    'cogs.util',
+    'cogs.voice']
 
-@bot.command(help = "disconnects the bot from whatever channel it is in")
-async def leave(ctx):
-    for client in bot.voice_clients:
-        if client.guild == ctx.guild:
-            await client.disconnect()
+for extension in initial_extensions:
+    bot.load_extension(extension)
 
-@bot.command(help = "Joins the voice channel you are currently in. Does not play anything", aliases = ["join"])
-async def connect(ctx):
-    try: 
-        channelname = ctx.author.voice.channel
-        await channelname.connect()
-    except AttributeError:
-        await ctx.send("You don't appear to be in a voice channel!")
-    except ClientException:
-        await ctx.send("I'm already in a voice channel!")
-        
 
-@bot.command(help = "Reads your message in the voice channel you are currently in")
-async def read(ctx, *, arg):
-    if (str(type(ctx.author.voice))) == "<class 'NoneType'>":
-        await ctx.send("Not connected to a channel!")
-    else:
-        await ctx.send("Sorry, I haven't made this command yet")
- 
-@bot.command (help="Testing a voice command")
-async def voicetest(ctx):
-    channelname = ctx.author.voice.channel
-    try:
-        await channelname.connect()
-    except(AttributeError, ClientException):
-        pass
-    resultant = discord.FFmpegPCMAudio(source="audiofilev2.wav", executable="/usr/bin/ffmpeg")
-    ctx.voice_client.play(resultant)
-    await ctx.send("This is not a finished command yet. So far, it is only set up to play one file")
 #poggers
 @bot.event
 async def on_message(message):
@@ -101,18 +75,15 @@ async def on_message(message):
        # await message.channel.send(response)
     await bot.process_commands(message)
 
-
-
 #error handling
-
 @bot.event
 async def on_command_error(ctx, error):
     if hasattr(ctx.command, 'on_error'):
             return
     ignored = (commands.CommandNotFound, )
     error = getattr(error, 'original', error)
+    #ignores ignored errors
     if isinstance(error, ignored):
-
         return
     if isinstance(error, commands.MemberNotFound):
         await ctx.send("User not found")
@@ -120,17 +91,19 @@ async def on_command_error(ctx, error):
         await ctx.send('Sorry, that is not a valid number of arguments for this command. If you need help understanding how this command works, please use the command %help (your command)')
     else:
         await ctx.send("error")
+    #records tracebacks
     er = traceback.extract_stack()
     strerror = er.format()
     result = ""
     for item in strerror:
         result += item
+    #checks if debug mode is on
     if globals.debugmode == True:
+        #checks if I sent the message
         if ctx.author.id == 523655829279342593:
             await ctx.send("```" + str(error) + "\n" + result + "```")
         else:
             await ctx.send("Because debug mode is on, your traceback was saved")
-
 
 @bot.event
 async def on_command(ctx):
@@ -138,26 +111,50 @@ async def on_command(ctx):
     user = str(ctx.author.id)
     place = str(ctx.guild)
     existing = cursor.execute("SELECT number FROM bot_uses WHERE name = ?", (user,)).fetchone()
+    #checks if the user is already in the database
     try:
         existing = int(existing[0])
     except TypeError:
         existing = 0
     existing = int(existing) +1
+    #makes sure the command is in a cog, and sets the variable accordingly
+    try:
+        cog = ctx.cog.qualified_name,
+    except AttributeError: 
+        cog = "None"
+    #adds one to the user's count
     cursor.execute("INSERT INTO bot_uses(name,number) VALUES(?, ?) ON CONFLICT(name) DO UPDATE SET number=excluded.number", (user, existing))
+    #milestone messages
     connection.commit()
     if existing == 1:
         await ctx.send("Thank you for using Sushibot for the first time! If you are confused in any way about what I can do, feel free to type %help or contact SushiInYourFace")
     if existing == 100:
         await ctx.send("This was your 100th Sushibot command! Congratulations!")
-    print("New command from " + usertext + " in " + place)
     if existing == 250:
         await ctx.send("Congrats on your 250th Command to SushiBot")
+    #prints to console
+    print("New command from " + usertext + " in " + place)
+    #Adds message to JSON
+    with open('messages.json') as jfile:
+        data = json.load(jfile)
+        coms = data['commands']
+        ndata = {
+             "User": usertext,
+             "Guild": place,
+             "Channel": str(ctx.channel),
+             "Command": ctx.command.name,
+             "Cog": cog,
+             "Time": str(datetime.datetime.now())
+        }
+        coms.append(ndata)
+    writer(data)
 
+#rats- may add to cog
 @bot.command(help="RATS RATS RATS RATS RATS RATS RATS RATS RATS RATS RATS RATS", aliases=["rat", "RATS", "RAT"])
 async def rats(ctx):
     rat = random.choice(open("RATSRATSRATS.txt").readlines())
     await ctx.send(rat)
-
+#I need to fix this
 @bot.command(help="Changes the bot's current status")
 async def presence(ctx, *, arg):
     activity = discord.CustomActivity(name=arg)

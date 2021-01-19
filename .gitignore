@@ -4,3 +4,5 @@ Discord Bot/Wolfram_Key.txt
 .vscode
 unused
 Discord Bot/__pycache__
+Discord Bot/messages.json
+Discord Bot/cogs/__pycache__

@@ -66,3 +66,7 @@ class User(commands.Cog):
         except TypeError:
             await ctx.send("This user has not used SushiBoi yet. Sad")
 
+
+def setup(bot):
+    bot.add_cog(User(bot))
+

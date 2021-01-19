@@ -52,3 +52,6 @@ class SQLCrap(commands.Cog, name="SQL Crap"):
             await ctx.send(str(output[0]))
         except TypeError:
             await ctx.send("This user has not created a message yet")
+
+def setup(bot):
+    bot.add_cog(SQLCrap(bot))
