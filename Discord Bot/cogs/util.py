@@ -24,6 +24,7 @@ class Utility(commands.Cog):
     #TKinter window letting me send a message as SushiBot
     @commands.command(help="Currently only useable by Sushi, allows the sending of a message as the bot")
     async def sendas(self, ctx):
+        globals.sendas_completed = False
         #makes sure it's me sending the message
         if ctx.author.id == 523655829279342593:
             #sets up window
@@ -43,12 +44,30 @@ class Utility(commands.Cog):
                 if selectedguild:
                     for channel in selectedguild.text_channels:
                         chnls.insert(END, channel.name)
+                    globals.sendas_guild = selectedguild
+            #executes when channel is confirmed
+            def chnlclick():
+                cpos = chnls.curselection()
+                cselected = chnls.get(cpos)
+                print(cselected)
+            def messclick():
+                cpos = chnls.curselection()
+                cselect = chnls.get(cpos)
+                for channel in globals.sendas_guild.text_channels:
+                    if channel.name == cselect:
+                        globals.sendas_chan = channel
+                        break
+                globals.sendas_content = messtext.get()
+                window.destroy()
+                globals.sendas_completed = 1
 
             #sets up items in window
             lst = Listbox(leftframe, height=7, width=25)
             guildsubmit = Button(leftframe, text="Submit Guild", command=onclick)
             chnls = Listbox(window)
-            chnlsubmit = Button(window, text="Submit Channel")
+            chnlsubmit = Button(window, text="Submit Channel", command=chnlclick)
+            messtext = Entry(window)
+            messubmit = Button(window, text="Submit Message", command=messclick)
             #adds items to guild listbox
             for guild in self.bot.guilds:
                 lst.insert(END, guild.name)
@@ -57,8 +76,14 @@ class Utility(commands.Cog):
             lst.pack(side=TOP)
             guildsubmit.pack(side=TOP)
             chnls.pack(side=TOP)
+            chnlsubmit.pack(side=TOP)
+            messtext.pack(side=BOTTOM)
+            messubmit.pack(side=BOTTOM)
             await ctx.send("GUI Opened!")
             window.mainloop()
+            print("GUI closed!")
+            if globals.sendas_completed == 1:
+                await globals.sendas_chan.send(globals.sendas_content)
 
                         
         else:

@@ -10,7 +10,7 @@ class Voice(commands.Cog):
     #leave command
     @commands.command(help = "disconnects the bot from whatever channel it is in")
     async def leave(self, ctx):
-        for client in bot.voice_clients:
+        for client in self.bot.voice_clients:
             if client.guild == ctx.guild:
                 await client.disconnect()
             
@@ -36,14 +36,17 @@ class Voice(commands.Cog):
     #may be safe to get rid of this at some point soon
     @commands.command (help="Testing a voice command")
     async def voicetest(self, ctx):
-        channelname = ctx.author.voice.channel
         try:
-            await channelname.connect()
-        except(AttributeError, ClientException):
-            pass
-        resultant = discord.FFmpegPCMAudio(source="audiofilev2.wav", executable="/usr/bin/ffmpeg")
-        ctx.voice_client.play(resultant)
-        await ctx.send("This is not a finished command yet. So far, it is only set up to play one file")
+            channelname = ctx.author.voice.channel
+            try:
+                await channelname.connect()
+            except(AttributeError, ClientException):
+                pass
+            resultant = discord.FFmpegPCMAudio(source="audiofilev2.wav", executable="/usr/bin/ffmpeg")
+            ctx.voice_client.play(resultant)
+            await ctx.send("This is not a finished command yet. So far, it is only set up to play one file")
+        except AttributeError:
+            await ctx.send("You don't seem to be in a voice channel!")
 
 
 def setup(bot):
