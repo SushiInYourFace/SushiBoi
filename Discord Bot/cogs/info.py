@@ -4,6 +4,7 @@ import wolframalpha
 import pokepy
 from discord import client
 from beckett.exceptions import InvalidStatusCodeError
+import random
 
 pokeclient = pokepy.V2Client()
 WOLFRAM_KEY = open('Wolfram_Key.txt').read()
@@ -52,7 +53,11 @@ class Information(commands.Cog):
             await ctx.send(embed=returnembed)
         except InvalidStatusCodeError:
             await ctx.send("Not a valid pokemon")
-        
+    #rats- may add to cog
+    @commands.command(help="RATS RATS RATS RATS RATS RATS RATS RATS RATS RATS RATS RATS", aliases=["rat", "RATS", "RAT"])
+    async def rats(self, ctx):
+        rat = random.choice(open("RATSRATSRATS.txt").readlines())
+        await ctx.send(rat)    
 
 def setup(bot):
     bot.add_cog(Information(bot))

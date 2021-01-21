@@ -1,6 +1,11 @@
 import discord
 from discord.ext import commands
 from discord.errors import ClientException
+from gtts import gTTS
+import os
+import os.path
+import time
+import globals
 
 class Voice(commands.Cog):
     def __init__(self, bot):
@@ -26,12 +31,33 @@ class Voice(commands.Cog):
             await ctx.send("I'm already in a voice channel!")
             
     #TTS messages, have not completed
-    @commands.command(help = "Reads your message in the voice channel you are currently in")
+    @commands.command(help = "Reads your message in the voice channel you are currently in", aliases=['r'])
     async def read(self, ctx, *, arg):
-        if (str(type(ctx.author.voice))) == "<class 'NoneType'>":
-            await ctx.send("Not connected to a channel!")
-        else:
-            await ctx.send("Sorry, I haven't made this command yet")
+        if str(type(ctx.voice_client)) != "<class 'NoneType'>":
+            waiting = True
+            while waiting == True:
+                if ctx.voice_client.is_playing():
+                    time.sleep(5)
+                else:
+                    waiting = False
+                    break
+        abort = False
+        try: 
+            channelname = ctx.author.voice.channel
+            await channelname.connect()
+        except AttributeError:
+            await ctx.send("You don't appear to be in a voice channel!")
+            abort = True
+        except ClientException:
+            pass
+        if not abort:
+            tts = gTTS(arg, lang='en')
+            tts.save("TTS/speech.mp3")
+            sourcefile = "TTS/speech.mp3"
+            speech = discord.FFmpegPCMAudio(source=sourcefile, executable="/usr/bin/ffmpeg")
+            ctx.voice_client.play(speech)
+
+
 
     #may be safe to get rid of this at some point soon
     @commands.command (help="Testing a voice command")

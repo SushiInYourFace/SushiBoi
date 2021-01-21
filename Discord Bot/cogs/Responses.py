@@ -25,7 +25,9 @@ class Responses(commands.Cog):
     @commands.command(help = "Repeats your message back to you")
     async def parrot(self, ctx, *, arg):
         await ctx.send(str(arg))
-
+    @commands.command(help="Does the bot still work?")
+    async def test(self, ctx):
+        await ctx.send("Yes, the bot still works!")
 
 def setup(bot):
     bot.add_cog(Responses(bot))

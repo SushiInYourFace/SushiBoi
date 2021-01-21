@@ -4,6 +4,7 @@ sendas_guild = None
 sendas_chan = None
 sendas_content = None
 sendas_completed = False
+tts_ready = True
 
 #No idea if this is needed
 def load():
@@ -17,4 +18,6 @@ def load():
     sendas_content = None
     global sendas_completed 
     sendas_completed = False
+    global tts_ready
+    tts_ready = True
 

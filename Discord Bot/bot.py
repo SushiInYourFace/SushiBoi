@@ -25,9 +25,18 @@ client = wolframalpha.Client(WOLFRAM_KEY)
 pokeclient = pokepy.V2Client()
 
 #intents, starting bot
+async def get_pre(bot, message):
+    prefixes = ["%"]
+    try:
+         guildcommand = cursor.execute("SELECT prefix FROM guild_prefixes WHERE guild = ?", (message.guild.name,)).fetchone()
+         prefixes.append(str(guildcommand[0]))
+    except TypeError:
+        pass
+    return prefixes
+
 intents = discord.Intents.default()
 intents.members = True
-bot = commands.Bot(command_prefix="%", intents=intents)
+bot = commands.Bot(command_prefix=get_pre, intents=intents)
 
 #SQLite
 connection = sqlite3.connect("database.db")
@@ -37,6 +46,7 @@ cursor.execute("CREATE TABLE IF NOT EXISTS bot_uses (name TEXT PRIMARY KEY, numb
 cursor.execute("CREATE TABLE IF NOT EXISTS user_message (name TEXT PRIMARY KEY, message TEXT)")
 cursor.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)")
 cursor.execute("CREATE TABLE IF NOT EXISTS command_uses (command TEXT PRIMARY KEY, uses INTEGER)")
+cursor.execute("CREATE TABLE IF NOT EXISTS guild_prefixes (guild TEXT PRIMARY KEY, prefix TEXT)")
 connection.commit()
 
 #JSON writer, used for logging messages
@@ -164,14 +174,5 @@ async def on_command(ctx):
         coms.append(ndata)
     writer(data)
 
-#rats- may add to cog
-@bot.command(help="RATS RATS RATS RATS RATS RATS RATS RATS RATS RATS RATS RATS", aliases=["rat", "RATS", "RAT"])
-async def rats(ctx):
-    rat = random.choice(open("RATSRATSRATS.txt").readlines())
-    await ctx.send(rat)
-#I need to fix this
-@bot.command(help="Changes the bot's current status")
-async def presence(ctx, *, arg):
-    activity = discord.CustomActivity(name=arg)
-    await bot.change_presence(activity=activity)
+
 bot.run(TOKEN)

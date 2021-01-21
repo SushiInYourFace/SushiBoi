@@ -3,6 +3,12 @@ import globals
 from discord.ext import commands
 import Notifs
 from tkinter import *
+import sqlite3
+
+#sets up SQLite
+connection = sqlite3.connect("database.db")
+cursor = connection.cursor()
+
 
 class Utility(commands.Cog):
     def __init__(self, bot):
@@ -84,11 +90,27 @@ class Utility(commands.Cog):
             print("GUI closed!")
             if globals.sendas_completed == 1:
                 await globals.sendas_chan.send(globals.sendas_content)
-
-                        
         else:
             await ctx.send("Sorry, Sushi is currently the only person able to use this command")
 
+    @commands.command(help='Reloads a specific cog')
+    async def reload_cog(self, ctx, arg):
+        try:
+            self.bot.reload_extension(arg)
+            await ctx.send('Cog reloaded!')
+        except BaseException:
+            await ctx.send("Couldn't reload the cog. Are you sure you used the correct syntax? It's cogs.foo")
+
+    @commands.command(help="Sets a specific prefix for the server")
+    async def prefix(self, ctx, arg):
+        cursor.execute("INSERT INTO guild_prefixes(guild,prefix) VALUES(?, ?) ON CONFLICT(guild) DO UPDATE SET prefix=excluded.prefix", (ctx.guild.name, arg))
+        connection.commit()
+        await ctx.send("Your new server-specific prefex is " + arg)
+
+    @commands.command(help="Changes the bot's current status")
+    async def presence(self, ctx, *, arg):
+        activity = discord.Game(name=arg)
+        await self.bot.change_presence(activity=activity)
 def setup(bot):
     bot.add_cog(Utility(bot))
 
